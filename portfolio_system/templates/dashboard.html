@@ -24,7 +24,7 @@
                 <td>{{ p.portfolio_name }}</td>
                 <td>{{ p.base_currency }}</td>
                 <td>{{ p.num_assets }}</td>
-                <td>{{ p.created_at.strftime('%d %b %Y') }}</td>
+                <td>{{ p.created_at.strftime('%d %b %Y') if p.created_at else '—' }}</td>
                 <td>
                     <a href="{{ url_for('view_holdings', portfolio_id=p.portfolio_id) }}"
                        class="btn btn-info btn-sm">View Holdings</a>

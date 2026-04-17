@@ -19,7 +19,7 @@ app.secret_key = "pms_secret_key_change_in_prod"
 DB_CONFIG = {
     "host":     "localhost",
     "user":     "root",
-    "password": "1234",   # ← change this
+    "password": "your_mysql_password",   # ← change this
     "database": "portfolio_db",
 }
 

@@ -1,3 +1,9 @@
+-- ============================================================
+--  Portfolio Management System - Database Schema
+--  DBMS Concepts: Primary Keys, Foreign Keys, Constraints,
+--                 Indexes, Transactions, Normalization
+-- ============================================================
+
 CREATE DATABASE IF NOT EXISTS portfolio_db;
 USE portfolio_db;
 
@@ -239,4 +245,3 @@ INSERT IGNORE INTO ASSET (symbol, name, asset_type, exchange, sector) VALUES
 ('BNB',   'Binance Coin',        'crypto', NULL,     NULL),
 ('SOL',   'Solana',              'crypto', NULL,     NULL),
 ('DOGE',  'Dogecoin',            'crypto', NULL,     NULL);
-
