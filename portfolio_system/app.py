@@ -19,7 +19,7 @@ app.secret_key = "pms_secret_key_change_in_prod"
 DB_CONFIG = {
     "host":     "localhost",
     "user":     "root",
-    "password": "1234",   
+    "password": "1234",   # ← change this
     "database": "portfolio_db",
 }
 
@@ -363,23 +363,57 @@ def buy_asset():
         conn = get_db()
         cur  = conn.cursor()
         try:
-            # Call the stored procedure sp_buy_asset
-            cur.callproc("sp_buy_asset",
-                         [portfolio_id, asset_id, quantity, price, fee, ""])
-            conn.commit()
+            # ── DBMS concept: explicit transaction ──
+            conn.start_transaction()
 
-            # Retrieve the OUT parameter status
-            cur.execute("SELECT @_sp_buy_asset_5")   # OUT param index 5
-            result = cur.fetchone()
-            status = result[0] if result else "SUCCESS"
+            # Step 1: Insert the transaction record
+            cur.execute(
+                """INSERT INTO TRANSACTION
+                       (portfolio_id, asset_id, transaction_type,
+                        quantity, price_per_unit, transaction_fee)
+                   VALUES (%s, %s, 'BUY', %s, %s, %s)""",
+                (portfolio_id, asset_id, quantity, price, fee)
+            )
 
-            if status == "SUCCESS":
-                flash("Buy transaction recorded successfully!", "success")
-                return redirect(url_for("view_holdings", portfolio_id=portfolio_id))
+            # Step 2: Check if a holding already exists for this asset
+            cur.execute(
+                """SELECT holding_id, total_quantity, average_buy_price
+                   FROM HOLDING
+                   WHERE portfolio_id = %s AND asset_id = %s""",
+                (portfolio_id, asset_id)
+            )
+            existing = cur.fetchone()
+
+            if existing:
+                # Holding exists — recalculate weighted average price
+                old_qty   = float(existing[1])
+                old_avg   = float(existing[2])
+                new_qty   = old_qty + quantity
+                new_avg   = round(((old_qty * old_avg) + (quantity * price)) / new_qty, 8)
+
+                cur.execute(
+                    """UPDATE HOLDING
+                       SET total_quantity    = %s,
+                           average_buy_price = %s
+                       WHERE holding_id = %s""",
+                    (new_qty, new_avg, existing[0])
+                )
             else:
-                flash(f"Transaction failed: {status}", "error")
+                # No holding yet — create a new one
+                cur.execute(
+                    """INSERT INTO HOLDING
+                           (portfolio_id, asset_id, total_quantity, average_buy_price)
+                       VALUES (%s, %s, %s, %s)""",
+                    (portfolio_id, asset_id, quantity, price)
+                )
+
+            conn.commit()
+            flash("Buy transaction recorded successfully!", "success")
+            return redirect(url_for("view_holdings", portfolio_id=portfolio_id))
+
         except Exception as e:
-            flash(f"Error: {str(e)}", "error")
+            conn.rollback()
+            flash(f"Transaction failed: {str(e)}", "error")
         finally:
             cur.close()
             conn.close()
@@ -407,23 +441,37 @@ def sell_asset():
             conn = get_db()
             cur  = conn.cursor()
             try:
-                cur.callproc("sp_sell_asset",
-                             [portfolio_id, asset_id, quantity, price, fee, ""])
-                conn.commit()
-
-                cur.execute("SELECT @_sp_sell_asset_5")
-                result = cur.fetchone()
-                status = result[0] if result else "SUCCESS"
-
-                if status == "SUCCESS":
-                    flash("Sell transaction recorded successfully!", "success")
-                    return redirect(url_for("view_holdings", portfolio_id=portfolio_id))
-                elif status == "INSUFFICIENT_QUANTITY":
+                conn.start_transaction()
+                cur.execute(
+                    """SELECT holding_id, total_quantity
+                       FROM HOLDING
+                       WHERE portfolio_id = %s AND asset_id = %s
+                       FOR UPDATE""",
+                    (portfolio_id, asset_id)
+                )
+                holding = cur.fetchone()
+                if not holding or float(holding[1]) < quantity:
+                    conn.rollback()
                     flash("Not enough units in holding to sell.", "error")
                 else:
-                    flash(f"Transaction failed: {status}", "error")
+                    cur.execute(
+                        """INSERT INTO TRANSACTION
+                               (portfolio_id, asset_id, transaction_type,
+                                quantity, price_per_unit, transaction_fee)
+                           VALUES (%s, %s, 'SELL', %s, %s, %s)""",
+                        (portfolio_id, asset_id, quantity, price, fee)
+                    )
+                    remaining = float(holding[1]) - quantity
+                    if remaining == 0:
+                        cur.execute("DELETE FROM HOLDING WHERE holding_id = %s", (holding[0],))
+                    else:
+                        cur.execute("UPDATE HOLDING SET total_quantity = %s WHERE holding_id = %s", (remaining, holding[0]))
+                    conn.commit()
+                    flash("Sell transaction recorded successfully!", "success")
+                    return redirect(url_for("view_holdings", portfolio_id=portfolio_id))
             except Exception as e:
-                flash(f"Error: {str(e)}", "error")
+                conn.rollback()
+                flash(f"Transaction failed: {str(e)}", "error")
             finally:
                 cur.close()
                 conn.close()
