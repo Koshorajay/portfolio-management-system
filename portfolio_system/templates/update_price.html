@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Update Market Price{% endblock %}
+{% block content %}
+<h1>Update Market Price</h1>
+<div class="card" style="max-width:450px">
+    <h2>Record Closing Price</h2>
+    <p class="hint" style="margin-bottom:12px">
+        Inserts a row into MARKET_DATA and refreshes the
+        <code>current_value_snapshot</code> in all HOLDING rows for this asset.
+    </p>
+    <form method="POST" action="{{ url_for('update_market_price') }}">
+        <div class="form-group">
+            <label for="asset_id">Asset *</label>
+            <select id="asset_id" name="asset_id" required>
+                {% for a in assets %}
+                    <option value="{{ a.asset_id }}">
+                        {{ a.symbol }} — {{ a.name }} ({{ a.asset_type }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="closing_price">Closing / Current Price *</label>
+            <input type="number" id="closing_price" name="closing_price"
+                   step="0.00000001" min="0.00000001" required
+                   placeholder="e.g. 185.75">
+        </div>
+        <button type="submit" class="btn btn-primary">Update Price</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="margin-left:8px">Cancel</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portfolio Manager{% endblock %}</title>
+    <style>
+        /* ── Reset & Base ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            background: #f4f4f4;
+            color: #222;
+        }
+
+        /* ── Navbar ── */
+        nav {
+            background: #2c3e50;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        nav .brand { font-weight: bold; font-size: 16px; margin-right: auto; }
+        nav a { color: #ccc; text-decoration: none; font-size: 13px; }
+        nav a:hover { color: #fff; }
+
+        /* ── Page wrapper ── */
+        .container { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+
+        /* ── Flash messages ── */
+        .flash-list { list-style: none; margin-bottom: 16px; }
+        .flash-list li {
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .flash-list li.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-list li.error   { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-list li.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        /* ── Cards ── */
+        .card {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 { margin-bottom: 14px; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+
+        /* ── Forms ── */
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; }
+        .form-group input,
+        .form-group select { width: 100%; padding: 7px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-block;
+            padding: 8px 18px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .btn-primary { background: #2c3e50; color: #fff; }
+        .btn-success { background: #27ae60; color: #fff; }
+        .btn-danger  { background: #e74c3c; color: #fff; }
+        .btn-info    { background: #2980b9; color: #fff; }
+        .btn-sm      { padding: 4px 10px; font-size: 12px; }
+
+        /* ── Tables ── */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 8px 10px; border: 1px solid #ddd; text-align: left; }
+        th { background: #ecf0f1; font-weight: bold; }
+        tr:nth-child(even) { background: #f9f9f9; }
+
+        /* ── Misc ── */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .badge-stock  { background: #d6eaf8; color: #1a5276; }
+        .badge-crypto { background: #fef9e7; color: #7d6608; }
+        .badge-buy    { background: #d4efdf; color: #1e8449; }
+        .badge-sell   { background: #fadbd8; color: #922b21; }
+
+        .text-right { text-align: right; }
+        .mt-10 { margin-top: 10px; }
+        .hint { color: #888; font-size: 12px; margin-top: 4px; }
+        h1 { font-size: 20px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <span class="brand">📈 Portfolio Manager</span>
+    {% if session.get('username') %}
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('list_assets') }}">Assets</a>
+        <a href="{{ url_for('add_asset') }}">Add Asset</a>
+        <a href="{{ url_for('buy_asset') }}">Buy</a>
+        <a href="{{ url_for('sell_asset') }}">Sell</a>
+        <a href="{{ url_for('update_market_price') }}">Update Price</a>
+        <a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a>
+    {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('register') }}">Register</a>
+    {% endif %}
+</nav>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-list">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

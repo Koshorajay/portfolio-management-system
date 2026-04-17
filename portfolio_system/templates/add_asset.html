@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Add Asset{% endblock %}
+{% block content %}
+<h1>Add New Asset</h1>
+<div class="card" style="max-width:500px">
+    <h2>Asset Details</h2>
+    <p class="hint" style="margin-bottom:12px">
+        Common assets (AAPL, BTC, ETH, etc.) are already seeded. Only add if the asset is missing.
+    </p>
+    <form method="POST" action="{{ url_for('add_asset') }}">
+        <div class="form-group">
+            <label for="symbol">Ticker Symbol *</label>
+            <input type="text" id="symbol" name="symbol" required
+                   placeholder="e.g. INFY, XRP" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+            <label for="name">Full Name *</label>
+            <input type="text" id="name" name="name" required placeholder="e.g. Infosys Ltd.">
+        </div>
+        <div class="form-group">
+            <label for="asset_type">Asset Type *</label>
+            <select id="asset_type" name="asset_type" required>
+                <option value="stock">Stock</option>
+                <option value="crypto">Crypto</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="exchange">Exchange (optional)</label>
+            <input type="text" id="exchange" name="exchange" placeholder="e.g. NSE, NASDAQ">
+        </div>
+        <div class="form-group">
+            <label for="sector">Sector (optional)</label>
+            <input type="text" id="sector" name="sector" placeholder="e.g. Technology, Finance">
+        </div>
+        <button type="submit" class="btn btn-success">Add Asset</button>
+        <a href="{{ url_for('list_assets') }}" class="btn btn-primary" style="margin-left:8px">View All Assets</a>
+    </form>
+</div>
+{% endblock %}

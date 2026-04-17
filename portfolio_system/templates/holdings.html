@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Holdings — {{ portfolio.portfolio_name }}{% endblock %}
+{% block content %}
+<h1>{{ portfolio.portfolio_name }}
+    <small style="font-size:13px;color:#666">({{ portfolio.base_currency }})</small>
+</h1>
+
+<!-- ── Summary ── -->
+<div class="card">
+    <h2>Portfolio Summary</h2>
+    <table style="max-width:400px">
+        <tr>
+            <th>Total Assets Held</th>
+            <td>{{ holdings | length }}</td>
+        </tr>
+        <tr>
+            <th>Total Invested (Cost Basis)</th>
+            <td>{{ summary.total_invested or '0.00' }} {{ portfolio.base_currency }}</td>
+        </tr>
+    </table>
+
+    <div class="mt-10">
+        <a href="{{ url_for('buy_asset') }}?portfolio_id={{ portfolio.portfolio_id }}"
+           class="btn btn-success">+ Buy Asset</a>
+        <a href="{{ url_for('sell_asset') }}?portfolio_id={{ portfolio.portfolio_id }}"
+           class="btn btn-danger" style="margin-left:8px">- Sell Asset</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="margin-left:8px">← Dashboard</a>
+    </div>
+</div>
+
+<!-- ── Current Holdings ── -->
+<div class="card">
+    <h2>Current Holdings</h2>
+    {% if holdings %}
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Avg Buy Price</th>
+                <th>Cost Basis</th>
+                <th>Market Value*</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in holdings %}
+            <tr>
+                <td><strong>{{ h.symbol }}</strong></td>
+                <td>{{ h.asset_name }}</td>
+                <td>
+                    <span class="badge badge-{{ h.asset_type }}">{{ h.asset_type }}</span>
+                </td>
+                <td>{{ "%.4f"|format(h.total_quantity | float) }}</td>
+                <td>{{ "%.2f"|format(h.average_buy_price | float) }}</td>
+                <td>{{ "%.2f"|format(h.cost_basis | float) }}</td>
+                <td>
+                    {% if h.current_value_snapshot %}
+                        {{ "%.2f"|format(h.current_value_snapshot | float) }}
+                    {% else %}
+                        <span style="color:#aaa">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p class="hint">* Market Value updated manually via "Update Price". — means no price recorded yet.</p>
+    {% else %}
+        <p>No holdings yet. <a href="{{ url_for('buy_asset') }}?portfolio_id={{ portfolio.portfolio_id }}">Buy your first asset!</a></p>
+    {% endif %}
+</div>
+
+<!-- ── Recent Transactions ── -->
+<div class="card">
+    <h2>Recent Transactions (last 10)</h2>
+    {% if transactions %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Symbol</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Price/Unit</th>
+                <th>Fee</th>
+                <th>Total</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td>{{ t.transaction_id }}</td>
+                <td><strong>{{ t.symbol }}</strong></td>
+                <td>
+                    <span class="badge badge-{{ t.transaction_type | lower }}">{{ t.transaction_type }}</span>
+                </td>
+                <td>{{ "%.4f"|format(t.quantity | float) }}</td>
+                <td>{{ "%.2f"|format(t.price_per_unit | float) }}</td>
+                <td>{{ "%.2f"|format(t.transaction_fee | float) }}</td>
+                <td>{{ "%.2f"|format((t.quantity | float) * (t.price_per_unit | float)) }}</td>
+                <td>{{ t.trade_date.strftime('%d %b %Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No transactions recorded.</p>
+    {% endif %}
+</div>
+{% endblock %}

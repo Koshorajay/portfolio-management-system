@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Buy Asset{% endblock %}
+{% block content %}
+<h1>Buy Asset</h1>
+<div class="card" style="max-width:500px">
+    <h2>Record a Buy Transaction</h2>
+    <p class="hint" style="margin-bottom:12px">
+        This inserts a TRANSACTION record and updates (or creates) the HOLDING using a weighted average price.
+        The operation runs inside a MySQL TRANSACTION for atomicity.
+    </p>
+    <form method="POST" action="{{ url_for('buy_asset') }}">
+
+        <div class="form-group">
+            <label for="portfolio_id">Portfolio *</label>
+            <select id="portfolio_id" name="portfolio_id" required>
+                {% if portfolios %}
+                    {% for p in portfolios %}
+                        <option value="{{ p.portfolio_id }}"
+                            {% if request.args.get('portfolio_id')|int == p.portfolio_id %}selected{% endif %}>
+                            {{ p.portfolio_name }}
+                        </option>
+                    {% endfor %}
+                {% else %}
+                    <option value="">No portfolios — create one first</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="asset_id">Asset *</label>
+            <select id="asset_id" name="asset_id" required>
+                {% for a in assets %}
+                    <option value="{{ a.asset_id }}">
+                        {{ a.symbol }} — {{ a.name }} ({{ a.asset_type }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="quantity">Quantity *</label>
+            <input type="number" id="quantity" name="quantity"
+                   step="0.00000001" min="0.00000001" required placeholder="e.g. 10 or 0.5">
+            <p class="hint">Supports up to 8 decimal places (for crypto like BTC)</p>
+        </div>
+
+        <div class="form-group">
+            <label for="price_per_unit">Price per Unit *</label>
+            <input type="number" id="price_per_unit" name="price_per_unit"
+                   step="0.00000001" min="0.00000001" required placeholder="e.g. 185.50">
+        </div>
+
+        <div class="form-group">
+            <label for="transaction_fee">Transaction Fee (optional)</label>
+            <input type="number" id="transaction_fee" name="transaction_fee"
+                   step="0.01" min="0" value="0" placeholder="e.g. 0.99">
+        </div>
+
+        {% if not portfolios %}
+            <p style="color:#e74c3c">You must <a href="{{ url_for('create_portfolio') }}">create a portfolio</a> first.</p>
+        {% else %}
+            <button type="submit" class="btn btn-success">Buy</button>
+        {% endif %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="margin-left:8px">Cancel</a>
+    </form>
+</div>
+{% endblock %}

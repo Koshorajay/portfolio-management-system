@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Welcome, {{ username }}!</h1>
+
+<div class="card">
+    <h2>Your Portfolios</h2>
+    {% if portfolios %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Portfolio Name</th>
+                <th>Currency</th>
+                <th>Assets Held</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in portfolios %}
+            <tr>
+                <td>{{ p.portfolio_id }}</td>
+                <td>{{ p.portfolio_name }}</td>
+                <td>{{ p.base_currency }}</td>
+                <td>{{ p.num_assets }}</td>
+                <td>{{ p.created_at.strftime('%d %b %Y') }}</td>
+                <td>
+                    <a href="{{ url_for('view_holdings', portfolio_id=p.portfolio_id) }}"
+                       class="btn btn-info btn-sm">View Holdings</a>
+                    <a href="{{ url_for('buy_asset') }}?portfolio_id={{ p.portfolio_id }}"
+                       class="btn btn-success btn-sm">Buy</a>
+                    <a href="{{ url_for('sell_asset') }}?portfolio_id={{ p.portfolio_id }}"
+                       class="btn btn-danger btn-sm">Sell</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No portfolios yet. Create one below!</p>
+    {% endif %}
+
+    <div class="mt-10">
+        <a href="{{ url_for('create_portfolio') }}" class="btn btn-primary">+ New Portfolio</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Links</h2>
+    <a href="{{ url_for('list_assets') }}"          class="btn btn-info">View All Assets</a>
+    <a href="{{ url_for('add_asset') }}"             class="btn btn-primary" style="margin-left:8px">Add New Asset</a>
+    <a href="{{ url_for('update_market_price') }}"   class="btn btn-primary" style="margin-left:8px">Update Market Price</a>
+</div>
+{% endblock %}

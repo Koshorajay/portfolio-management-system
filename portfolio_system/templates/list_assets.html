@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+<h1>All Assets</h1>
+
+<div class="card">
+    <h2>Filter</h2>
+    <form method="GET" action="{{ url_for('list_assets') }}">
+        <select name="type" onchange="this.form.submit()" style="padding:6px;border:1px solid #ccc;border-radius:4px">
+            <option value="">All Types</option>
+            <option value="stock"  {% if request.args.get('type')=='stock'  %}selected{% endif %}>Stocks</option>
+            <option value="crypto" {% if request.args.get('type')=='crypto' %}selected{% endif %}>Crypto</option>
+        </select>
+        <noscript><button type="submit" class="btn btn-primary btn-sm">Filter</button></noscript>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Asset List ({{ assets | length }} assets)</h2>
+    {% if assets %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Exchange</th>
+                <th>Sector</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in assets %}
+            <tr>
+                <td>{{ a.asset_id }}</td>
+                <td><strong>{{ a.symbol }}</strong></td>
+                <td>{{ a.name }}</td>
+                <td><span class="badge badge-{{ a.asset_type }}">{{ a.asset_type }}</span></td>
+                <td>{{ a.exchange or '—' }}</td>
+                <td>{{ a.sector  or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>No assets found.</p>
+    {% endif %}
+    <div class="mt-10">
+        <a href="{{ url_for('add_asset') }}" class="btn btn-success">+ Add New Asset</a>
+    </div>
+</div>
+{% endblock %}
