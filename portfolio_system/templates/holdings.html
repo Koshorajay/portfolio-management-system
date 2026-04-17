@@ -101,7 +101,7 @@
                 <td>{{ "%.2f"|format(t.price_per_unit | float) }}</td>
                 <td>{{ "%.2f"|format(t.transaction_fee | float) }}</td>
                 <td>{{ "%.2f"|format((t.quantity | float) * (t.price_per_unit | float)) }}</td>
-                <td>{{ t.trade_date.strftime('%d %b %Y %H:%M') }}</td>
+                <td>{{ t.trade_date.strftime('%d %b %Y %H:%M') if t.trade_date else '—' }}</td>
             </tr>
             {% endfor %}
         </tbody>
