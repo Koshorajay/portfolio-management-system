@@ -27,6 +27,7 @@
                 <th>Type</th>
                 <th>Exchange</th>
                 <th>Sector</th>
+                <th>Live Price</th>
             </tr>
         </thead>
         <tbody>
@@ -38,6 +39,20 @@
                 <td><span class="badge badge-{{ a.asset_type }}">{{ a.asset_type }}</span></td>
                 <td>{{ a.exchange or '—' }}</td>
                 <td>{{ a.sector  or '—' }}</td>
+                <td>
+                    {% if a.asset_type == 'crypto' %}
+                        {% set chart_symbol = a.symbol + '-USD' %}
+                    {% elif a.exchange == 'NSE' %}
+                        {% set chart_symbol = a.symbol + '.NS' %}
+                    {% elif a.exchange == 'BSE' %}
+                        {% set chart_symbol = a.symbol + '.BO' %}
+                    {% else %}
+                        {% set chart_symbol = a.symbol %}
+                    {% endif %}
+                    <a href="https://finance.yahoo.com/chart/{{ chart_symbol }}"
+                       target="_blank"
+                       class="btn btn-success btn-sm">📈 Live Chart</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

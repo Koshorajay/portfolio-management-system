@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Investment Idea{% endblock %}
+{% block content %}
+<h1>💡 Investment Idea Calculator</h1>
+
+<div class="card">
+    <h2>How it works</h2>
+    <p style="font-size:13px;color:#555;line-height:1.6">
+        Select one or more assets you are interested in, enter your total investment amount,
+        and we will calculate how many units of each you can buy —
+        with the amount split equally across your chosen assets.
+        Prices are pulled from the latest entry in our MARKET_DATA table.
+    </p>
+</div>
+
+<div class="card">
+    <h2>Step 1 — Choose Assets &amp; Amount</h2>
+    <form method="POST" action="{{ url_for('invest_idea') }}">
+
+        <div class="form-group">
+            <label>Total Investment Amount *</label>
+            <input type="number" name="amount" step="0.01" min="1" required
+                   placeholder="e.g. 50000"
+                   value="{{ total_amount if total_amount else '' }}"
+                   style="max-width:300px">
+        </div>
+
+        <div class="form-group">
+            <label>Select Assets (choose one or more)</label>
+            <p class="hint" style="margin-bottom:8px">Only assets with a recorded market price are shown.</p>
+
+            <!-- Stocks -->
+            <p style="font-weight:bold;margin:10px 0 6px;font-size:13px">📊 Stocks</p>
+            <table style="margin-bottom:12px">
+                <thead>
+                    <tr>
+                        <th style="width:40px">Select</th>
+                        <th>Symbol</th>
+                        <th>Name</th>
+                        <th>Exchange</th>
+                        <th>Latest Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in priced_assets if a.asset_type == 'stock' %}
+                    <tr>
+                        <td style="text-align:center">
+                            <input type="checkbox" name="asset_ids" value="{{ a.asset_id }}"
+                                {% if a.asset_id in selected_ids %}checked{% endif %}>
+                        </td>
+                        <td><strong>{{ a.symbol }}</strong></td>
+                        <td>{{ a.name }}</td>
+                        <td>{{ a.exchange or '—' }}</td>
+                        <td>{{ "%.2f"|format(a.latest_price|float) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Crypto -->
+            <p style="font-weight:bold;margin:10px 0 6px;font-size:13px">🪙 Crypto</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:40px">Select</th>
+                        <th>Symbol</th>
+                        <th>Name</th>
+                        <th>Latest Price (USD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in priced_assets if a.asset_type == 'crypto' %}
+                    <tr>
+                        <td style="text-align:center">
+                            <input type="checkbox" name="asset_ids" value="{{ a.asset_id }}"
+                                {% if a.asset_id in selected_ids %}checked{% endif %}>
+                        </td>
+                        <td><strong>{{ a.symbol }}</strong></td>
+                        <td>{{ a.name }}</td>
+                        <td>{{ "%.2f"|format(a.latest_price|float) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <button type="submit" class="btn btn-success">💡 Calculate</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="margin-left:8px">Back</a>
+    </form>
+</div>
+
+<!-- Results -->
+{% if results %}
+<div class="card">
+    <h2>📊 Investment Breakdown</h2>
+    <p style="font-size:13px;margin-bottom:12px">
+        Total amount: <strong>{{ "%.2f"|format(total_amount) }}</strong> &nbsp;|&nbsp;
+        Split equally among <strong>{{ results|length }}</strong> asset(s) →
+        <strong>{{ "%.2f"|format(total_amount / results|length) }}</strong> per asset
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Latest Price</th>
+                <th>Your Allocation</th>
+                <th>Units You Can Buy</th>
+                <th>Amount Spent</th>
+                <th>Change Remaining</th>
+                <th>Live Chart</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td><strong>{{ r.symbol }}</strong></td>
+                <td>{{ r.name }}</td>
+                <td>{{ "%.2f"|format(r.price) }}</td>
+                <td>{{ "%.2f"|format(r.allocation) }}</td>
+                <td>
+                    {% if r.qty > 0 %}
+                        <span style="color:#27ae60;font-weight:bold">{{ r.qty }} units</span>
+                    {% else %}
+                        <span style="color:#e74c3c">Not enough funds for 1 unit</span>
+                    {% endif %}
+                </td>
+                <td>{{ "%.2f"|format(r.spent) }}</td>
+                <td>{{ "%.2f"|format(r.leftover) }}</td>
+                <td>
+                    {% if r.asset_type == 'crypto' %}
+                        {% set chart_symbol = r.symbol + '-USD' %}
+                    {% elif r.exchange == 'NSE' %}
+                        {% set chart_symbol = r.symbol + '.NS' %}
+                    {% elif r.exchange == 'BSE' %}
+                        {% set chart_symbol = r.symbol + '.BO' %}
+                    {% else %}
+                        {% set chart_symbol = r.symbol %}
+                    {% endif %}
+                    <a href="https://finance.yahoo.com/chart/{{ chart_symbol }}"
+                       target="_blank" class="btn btn-success btn-sm">📈 Live</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top:14px;padding:10px;background:#f0f9ff;border:1px solid #bee3f8;border-radius:4px;font-size:13px">
+        <strong>Total amount invested:</strong> {{ "%.2f"|format(total_amount - leftover) }} &nbsp;|&nbsp;
+        <strong>Total unspent (change):</strong>
+        <span style="color:{% if leftover > 0 %}#e67e22{% else %}#27ae60{% endif %}">
+            {{ "%.2f"|format(leftover) }}
+        </span>
+        &nbsp;|&nbsp;
+        <strong>Tip:</strong> You can add this leftover to one of the assets or keep it as cash reserve.
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -2,21 +2,46 @@
 {% block title %}Buy Asset{% endblock %}
 {% block content %}
 <h1>Buy Asset</h1>
-<div class="card" style="max-width:500px">
-    <h2>Record a Buy Transaction</h2>
+
+<!-- Step 1: Load Latest Price (GET form) -->
+<div class="card" style="max-width:560px">
+    <h2>Step 1 — Select Asset &amp; Load Price</h2>
     <p class="hint" style="margin-bottom:12px">
-        This inserts a TRANSACTION record and updates (or creates) the HOLDING using a weighted average price.
-        The operation runs inside a MySQL TRANSACTION for atomicity.
+        Select an asset and click <strong>Load Latest Price</strong> to auto-fill
+        from MARKET_DATA. Or skip and type manually in Step 2.
     </p>
+    <form method="GET" action="{{ url_for('buy_asset') }}">
+        {% if preselect_pid %}
+            <input type="hidden" name="portfolio_id" value="{{ preselect_pid }}">
+        {% endif %}
+        <div class="form-group">
+            <label>Asset</label>
+            <select name="asset_id">
+                {% for a in assets %}
+                    <option value="{{ a.asset_id }}"
+                        {% if preselect_aid and preselect_aid|int == a.asset_id %}selected{% endif %}>
+                        {{ a.symbol }} — {{ a.name }} ({{ a.asset_type }}){% if a.latest_price %} | Price: {{ "%.2f"|format(a.latest_price|float) }}{% else %} | No price{% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <input type="hidden" name="load_price" value="1">
+        <button type="submit" class="btn btn-info">🔄 Load Latest Price</button>
+    </form>
+</div>
+
+<!-- Step 2: Actual Buy Form (POST) -->
+<div class="card" style="max-width:560px">
+    <h2>Step 2 — Enter Trade Details</h2>
     <form method="POST" action="{{ url_for('buy_asset') }}">
 
         <div class="form-group">
-            <label for="portfolio_id">Portfolio *</label>
-            <select id="portfolio_id" name="portfolio_id" required>
+            <label>Portfolio *</label>
+            <select name="portfolio_id" required>
                 {% if portfolios %}
                     {% for p in portfolios %}
                         <option value="{{ p.portfolio_id }}"
-                            {% if request.args.get('portfolio_id')|int == p.portfolio_id %}selected{% endif %}>
+                            {% if preselect_pid and preselect_pid|int == p.portfolio_id %}selected{% endif %}>
                             {{ p.portfolio_name }}
                         </option>
                     {% endfor %}
@@ -27,10 +52,11 @@
         </div>
 
         <div class="form-group">
-            <label for="asset_id">Asset *</label>
-            <select id="asset_id" name="asset_id" required>
+            <label>Asset *</label>
+            <select name="asset_id" required>
                 {% for a in assets %}
-                    <option value="{{ a.asset_id }}">
+                    <option value="{{ a.asset_id }}"
+                        {% if preselect_aid and preselect_aid|int == a.asset_id %}selected{% endif %}>
                         {{ a.symbol }} — {{ a.name }} ({{ a.asset_type }})
                     </option>
                 {% endfor %}
@@ -38,28 +64,37 @@
         </div>
 
         <div class="form-group">
-            <label for="quantity">Quantity *</label>
-            <input type="number" id="quantity" name="quantity"
-                   step="0.00000001" min="0.00000001" required placeholder="e.g. 10 or 0.5">
+            <label>Price per Unit *</label>
+            <input type="number" name="price_per_unit"
+                   step="0.00000001" min="0.00000001" required
+                   placeholder="Enter manually or use Load Price above"
+                   value="{{ prefill_price }}">
+            {% if prefill_price %}
+                <p class="hint" style="color:#27ae60">✔ Auto-filled from MARKET_DATA. You can edit if needed.</p>
+            {% else %}
+                <p class="hint">Use "Load Latest Price" above to auto-fill, or type manually.</p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label>Quantity *</label>
+            <input type="number" name="quantity"
+                   step="0.00000001" min="0.00000001" required
+                   placeholder="e.g. 10 or 0.5">
             <p class="hint">Supports up to 8 decimal places (for crypto like BTC)</p>
         </div>
 
         <div class="form-group">
-            <label for="price_per_unit">Price per Unit *</label>
-            <input type="number" id="price_per_unit" name="price_per_unit"
-                   step="0.00000001" min="0.00000001" required placeholder="e.g. 185.50">
-        </div>
-
-        <div class="form-group">
-            <label for="transaction_fee">Transaction Fee (optional)</label>
-            <input type="number" id="transaction_fee" name="transaction_fee"
-                   step="0.01" min="0" value="0" placeholder="e.g. 0.99">
+            <label>Transaction Fee (optional)</label>
+            <input type="number" name="transaction_fee" step="0.01" min="0" value="0">
         </div>
 
         {% if not portfolios %}
-            <p style="color:#e74c3c">You must <a href="{{ url_for('create_portfolio') }}">create a portfolio</a> first.</p>
+            <p style="color:#e74c3c">
+                You must <a href="{{ url_for('create_portfolio') }}">create a portfolio</a> first.
+            </p>
         {% else %}
-            <button type="submit" class="btn btn-success">Buy</button>
+            <button type="submit" class="btn btn-success">✅ Confirm Buy</button>
         {% endif %}
         <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="margin-left:8px">Cancel</a>
     </form>

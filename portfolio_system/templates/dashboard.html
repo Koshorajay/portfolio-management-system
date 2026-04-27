@@ -24,7 +24,7 @@
                 <td>{{ p.portfolio_name }}</td>
                 <td>{{ p.base_currency }}</td>
                 <td>{{ p.num_assets }}</td>
-                <td>{{ p.created_at.strftime('%d %b %Y') if p.created_at else '—' }}</td>
+                <td>{{ p.created_at | dateformat }}</td>
                 <td>
                     <a href="{{ url_for('view_holdings', portfolio_id=p.portfolio_id) }}"
                        class="btn btn-info btn-sm">View Holdings</a>
@@ -50,6 +50,7 @@
     <h2>Quick Links</h2>
     <a href="{{ url_for('list_assets') }}"          class="btn btn-info">View All Assets</a>
     <a href="{{ url_for('add_asset') }}"             class="btn btn-primary" style="margin-left:8px">Add New Asset</a>
+    <a href="{{ url_for('invest_idea') }}"           class="btn btn-success" style="margin-left:8px">💡 Investment Idea</a>
     <a href="{{ url_for('update_market_price') }}"   class="btn btn-primary" style="margin-left:8px">Update Market Price</a>
 </div>
 {% endblock %}

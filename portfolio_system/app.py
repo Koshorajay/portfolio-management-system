@@ -9,9 +9,27 @@ from flask import (Flask, render_template, request,
 import mysql.connector
 import hashlib
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "pms_secret_key_change_in_prod"
+
+# ── Custom Jinja2 filter: safely format dates whether the MySQL driver
+#    returns a datetime object (newer drivers) or a plain string (older drivers)
+@app.template_filter("dateformat")
+def dateformat(value, fmt="%d %b %Y"):
+    if not value:
+        return "—"
+    if isinstance(value, str):
+        for pattern in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d"):
+            try:
+                value = datetime.strptime(value, pattern)
+                break
+            except ValueError:
+                continue
+        else:
+            return value
+    return value.strftime(fmt)
 
 # ──────────────────────────────────────────────
 # Database Configuration — edit these values
@@ -35,13 +53,34 @@ def hash_password(password: str) -> str:
 
 
 def login_required(func):
-    """Simple decorator — redirect to login if not logged in."""
+    """Decorator — checks session AND verifies user still exists in DB.
+    This prevents the FK error when the database is wiped but the browser
+    still holds an old session cookie with a stale user_id.
+    """
     from functools import wraps
     @wraps(func)
     def wrapper(*args, **kwargs):
         if "user_id" not in session:
             flash("Please log in first.", "warning")
             return redirect(url_for("login"))
+
+        # Extra check: confirm this user_id actually exists in the database
+        try:
+            conn = get_db()
+            cur  = conn.cursor()
+            cur.execute("SELECT 1 FROM USER WHERE user_id = %s", (session["user_id"],))
+            exists = cur.fetchone()
+            cur.close()
+            conn.close()
+        except Exception:
+            exists = None
+
+        if not exists:
+            # Stale session — wipe it and send to register
+            session.clear()
+            flash("Session expired or database was reset. Please register and log in again.", "warning")
+            return redirect(url_for("login"))
+
         return func(*args, **kwargs)
     return wrapper
 
@@ -230,7 +269,7 @@ def view_holdings(portfolio_id):
             """SELECT t.transaction_id, a.symbol, t.transaction_type,
                       t.quantity, t.price_per_unit, t.transaction_fee,
                       t.trade_date
-               FROM TRANSACTION t
+               FROM `TRANSACTION` t
                JOIN ASSET a ON t.asset_id = a.asset_id
                WHERE t.portfolio_id = %s
                ORDER BY t.trade_date DESC
@@ -331,12 +370,39 @@ def _get_user_portfolios(user_id):
 
 
 def _get_all_assets():
-    """Helper: fetch all assets."""
+    """Helper: fetch all assets with their latest recorded price."""
     conn = get_db()
     cur  = conn.cursor(dictionary=True)
     try:
-        cur.execute("SELECT asset_id, symbol, name, asset_type FROM ASSET ORDER BY symbol")
+        cur.execute("""
+            SELECT a.asset_id, a.symbol, a.name, a.asset_type, a.exchange,
+                   (SELECT m.closing_price
+                    FROM MARKET_DATA m
+                    WHERE m.asset_id = a.asset_id
+                    ORDER BY m.recorded_at DESC
+                    LIMIT 1) AS latest_price
+            FROM ASSET a
+            ORDER BY a.symbol
+        """)
         return cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def _get_latest_price(asset_id):
+    """Helper: fetch latest market price for a given asset."""
+    conn = get_db()
+    cur  = conn.cursor()
+    try:
+        cur.execute(
+            """SELECT closing_price FROM MARKET_DATA
+               WHERE asset_id = %s
+               ORDER BY recorded_at DESC LIMIT 1""",
+            (asset_id,)
+        )
+        row = cur.fetchone()
+        return float(row[0]) if row else None
     finally:
         cur.close()
         conn.close()
@@ -346,8 +412,18 @@ def _get_all_assets():
 @app.route("/transaction/buy", methods=["GET", "POST"])
 @login_required
 def buy_asset():
-    portfolios = _get_user_portfolios(session["user_id"])
-    assets     = _get_all_assets()
+    portfolios    = _get_user_portfolios(session["user_id"])
+    assets        = _get_all_assets()
+    preselect_pid = request.args.get("portfolio_id", "")
+    preselect_aid = request.args.get("asset_id", "")
+    prefill_price = ""
+
+    # "Load Latest Price" button clicked (GET form)
+    if request.args.get("load_price") and preselect_aid:
+        p = _get_latest_price(int(preselect_aid))
+        prefill_price = str(p) if p else ""
+        if not p:
+            flash("No market price recorded for this asset. Please enter manually.", "warning")
 
     if request.method == "POST":
         portfolio_id = int(request.form["portfolio_id"])
@@ -358,7 +434,9 @@ def buy_asset():
 
         if quantity <= 0 or price <= 0:
             flash("Quantity and price must be positive.", "error")
-            return render_template("buy.html", portfolios=portfolios, assets=assets)
+            return render_template("buy.html", portfolios=portfolios, assets=assets,
+                                   preselect_pid=preselect_pid, preselect_aid=preselect_aid,
+                                   prefill_price=prefill_price)
 
         conn = get_db()
         cur  = conn.cursor()
@@ -368,7 +446,7 @@ def buy_asset():
 
             # Step 1: Insert the transaction record
             cur.execute(
-                """INSERT INTO TRANSACTION
+                """INSERT INTO `TRANSACTION`
                        (portfolio_id, asset_id, transaction_type,
                         quantity, price_per_unit, transaction_fee)
                    VALUES (%s, %s, 'BUY', %s, %s, %s)""",
@@ -408,7 +486,7 @@ def buy_asset():
                 )
 
             conn.commit()
-            flash("Buy transaction recorded successfully!", "success")
+            flash("Buy transaction recorded! Click '📈 Live' next to any asset to see its live chart.", "success")
             return redirect(url_for("view_holdings", portfolio_id=portfolio_id))
 
         except Exception as e:
@@ -418,7 +496,9 @@ def buy_asset():
             cur.close()
             conn.close()
 
-    return render_template("buy.html", portfolios=portfolios, assets=assets)
+    return render_template("buy.html", portfolios=portfolios, assets=assets,
+                           preselect_pid=preselect_pid, preselect_aid=preselect_aid,
+                           prefill_price=prefill_price)
 
 
 # ── Sell Asset ────────────────────────────────
@@ -455,7 +535,7 @@ def sell_asset():
                     flash("Not enough units in holding to sell.", "error")
                 else:
                     cur.execute(
-                        """INSERT INTO TRANSACTION
+                        """INSERT INTO `TRANSACTION`
                                (portfolio_id, asset_id, transaction_type,
                                 quantity, price_per_unit, transaction_fee)
                            VALUES (%s, %s, 'SELL', %s, %s, %s)""",
@@ -535,6 +615,59 @@ def update_market_price():
             conn.close()
 
     return render_template("update_price.html", assets=assets)
+
+
+
+# ── Investment Idea Calculator ────────────────
+@app.route("/invest-idea", methods=["GET", "POST"])
+@login_required
+def invest_idea():
+    assets        = _get_all_assets()
+    priced_assets = [a for a in assets if a["latest_price"]]
+    results       = []
+    total_amount  = None
+    leftover      = None
+    selected_ids  = []
+
+    if request.method == "POST":
+        selected_ids = request.form.getlist("asset_ids")
+        total_amount = float(request.form.get("amount") or 0)
+
+        if not selected_ids:
+            flash("Please select at least one asset.", "error")
+        elif total_amount <= 0:
+            flash("Please enter a valid investment amount.", "error")
+        else:
+            selected_ids = [int(i) for i in selected_ids]
+            per_asset    = total_amount / len(selected_ids)
+            total_spent  = 0
+
+            for a in priced_assets:
+                if a["asset_id"] in selected_ids:
+                    price   = float(a["latest_price"])
+                    qty     = int(per_asset // price)
+                    spent   = round(qty * price, 2)
+                    total_spent += spent
+                    results.append({
+                        "symbol":     a["symbol"],
+                        "name":       a["name"],
+                        "asset_type": a["asset_type"],
+                        "exchange":   a["exchange"],
+                        "price":      price,
+                        "allocation": round(per_asset, 2),
+                        "qty":        qty,
+                        "spent":      spent,
+                        "leftover":   round(per_asset - spent, 2),
+                    })
+
+            leftover = round(total_amount - total_spent, 2)
+
+    return render_template("invest_idea.html",
+                           priced_assets=priced_assets,
+                           results=results,
+                           total_amount=total_amount,
+                           leftover=leftover,
+                           selected_ids=selected_ids)
 
 
 # ============================================================

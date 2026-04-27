@@ -123,6 +123,7 @@ SELECT
     a.symbol,
     a.name        AS asset_name,
     a.asset_type,
+    a.exchange,
     h.total_quantity,
     h.average_buy_price,
     ROUND(h.total_quantity * h.average_buy_price, 2) AS cost_basis,
@@ -230,18 +231,110 @@ END$$
 DELIMITER ;
 
 -- ──────────────────────────────────────────────
--- Seed some common assets for testing
+-- Seed: Assets (Global + Indian + Crypto)
 -- ──────────────────────────────────────────────
 INSERT IGNORE INTO ASSET (symbol, name, asset_type, exchange, sector) VALUES
-('AAPL',  'Apple Inc.',          'stock',  'NASDAQ', 'Technology'),
-('MSFT',  'Microsoft Corp.',     'stock',  'NASDAQ', 'Technology'),
-('GOOGL', 'Alphabet Inc.',       'stock',  'NASDAQ', 'Technology'),
-('AMZN',  'Amazon.com Inc.',     'stock',  'NASDAQ', 'Consumer'),
-('TSLA',  'Tesla Inc.',          'stock',  'NASDAQ', 'Automotive'),
-('RELIANCE', 'Reliance Industries', 'stock', 'NSE', 'Energy'),
-('TCS',   'Tata Consultancy',    'stock',  'NSE',    'Technology'),
-('BTC',   'Bitcoin',             'crypto', NULL,     NULL),
-('ETH',   'Ethereum',            'crypto', NULL,     NULL),
-('BNB',   'Binance Coin',        'crypto', NULL,     NULL),
-('SOL',   'Solana',              'crypto', NULL,     NULL),
-('DOGE',  'Dogecoin',            'crypto', NULL,     NULL);
+-- US Stocks (NASDAQ)
+('AAPL',  'Apple Inc.',              'stock', 'NASDAQ', 'Technology'),
+('MSFT',  'Microsoft Corp.',         'stock', 'NASDAQ', 'Technology'),
+('GOOGL', 'Alphabet Inc.',           'stock', 'NASDAQ', 'Technology'),
+('AMZN',  'Amazon.com Inc.',         'stock', 'NASDAQ', 'Consumer'),
+('TSLA',  'Tesla Inc.',              'stock', 'NASDAQ', 'Automotive'),
+('NVDA',  'NVIDIA Corp.',            'stock', 'NASDAQ', 'Technology'),
+('META',  'Meta Platforms Inc.',     'stock', 'NASDAQ', 'Technology'),
+('NFLX',  'Netflix Inc.',            'stock', 'NASDAQ', 'Entertainment'),
+('AMD',   'Advanced Micro Devices',  'stock', 'NASDAQ', 'Technology'),
+('INTC',  'Intel Corp.',             'stock', 'NASDAQ', 'Technology'),
+('UBER',  'Uber Technologies',       'stock', 'NYSE',   'Transport'),
+('V',     'Visa Inc.',               'stock', 'NYSE',   'Finance'),
+('JPM',   'JPMorgan Chase',          'stock', 'NYSE',   'Finance'),
+('WMT',   'Walmart Inc.',            'stock', 'NYSE',   'Retail'),
+('DIS',   'Walt Disney Co.',         'stock', 'NYSE',   'Entertainment'),
+-- Indian Stocks (NSE)
+('RELIANCE',    'Reliance Industries',      'stock', 'NSE', 'Energy'),
+('TCS',         'Tata Consultancy Services','stock', 'NSE', 'Technology'),
+('INFY',        'Infosys Ltd.',             'stock', 'NSE', 'Technology'),
+('WIPRO',       'Wipro Ltd.',               'stock', 'NSE', 'Technology'),
+('HDFCBANK',    'HDFC Bank Ltd.',           'stock', 'NSE', 'Finance'),
+('ICICIBANK',   'ICICI Bank Ltd.',          'stock', 'NSE', 'Finance'),
+('SBIN',        'State Bank of India',      'stock', 'NSE', 'Finance'),
+('BAJFINANCE',  'Bajaj Finance Ltd.',       'stock', 'NSE', 'Finance'),
+('HINDUNILVR',  'Hindustan Unilever',       'stock', 'NSE', 'FMCG'),
+('MARUTI',      'Maruti Suzuki India',      'stock', 'NSE', 'Automotive'),
+('TATAMOTORS',  'Tata Motors Ltd.',         'stock', 'NSE', 'Automotive'),
+('SUNPHARMA',   'Sun Pharmaceutical',       'stock', 'NSE', 'Healthcare'),
+('TITAN',       'Titan Company Ltd.',       'stock', 'NSE', 'Consumer'),
+('ADANIENT',    'Adani Enterprises',        'stock', 'NSE', 'Conglomerate'),
+('NESTLEIND',   'Nestle India Ltd.',        'stock', 'NSE', 'FMCG'),
+('POWERGRID',   'Power Grid Corp.',         'stock', 'NSE', 'Utilities'),
+('ULTRACEMCO',  'UltraTech Cement',         'stock', 'NSE', 'Materials'),
+('ONGC',        'Oil & Natural Gas Corp.',  'stock', 'NSE', 'Energy'),
+('COALINDIA',   'Coal India Ltd.',          'stock', 'NSE', 'Energy'),
+('ITC',         'ITC Ltd.',                 'stock', 'NSE', 'FMCG'),
+-- Crypto
+('BTC',   'Bitcoin',        'crypto', NULL, NULL),
+('ETH',   'Ethereum',       'crypto', NULL, NULL),
+('BNB',   'Binance Coin',   'crypto', NULL, NULL),
+('SOL',   'Solana',         'crypto', NULL, NULL),
+('DOGE',  'Dogecoin',       'crypto', NULL, NULL),
+('XRP',   'XRP (Ripple)',   'crypto', NULL, NULL),
+('ADA',   'Cardano',        'crypto', NULL, NULL),
+('AVAX',  'Avalanche',      'crypto', NULL, NULL),
+('MATIC', 'Polygon',        'crypto', NULL, NULL),
+('LTC',   'Litecoin',       'crypto', NULL, NULL);
+
+-- ──────────────────────────────────────────────
+-- Seed: Market prices (approximate Jan 2025 prices)
+-- Using INSERT ... SELECT so subqueries work correctly in MySQL
+-- ──────────────────────────────────────────────
+
+-- US Stocks (USD)
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   229.00 FROM ASSET WHERE symbol='AAPL';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   415.00 FROM ASSET WHERE symbol='MSFT';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   192.00 FROM ASSET WHERE symbol='GOOGL';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   220.00 FROM ASSET WHERE symbol='AMZN';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   390.00 FROM ASSET WHERE symbol='TSLA';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   138.00 FROM ASSET WHERE symbol='NVDA';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   590.00 FROM ASSET WHERE symbol='META';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   870.00 FROM ASSET WHERE symbol='NFLX';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   124.00 FROM ASSET WHERE symbol='AMD';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,    20.00 FROM ASSET WHERE symbol='INTC';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,    70.00 FROM ASSET WHERE symbol='UBER';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   310.00 FROM ASSET WHERE symbol='V';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   240.00 FROM ASSET WHERE symbol='JPM';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   100.00 FROM ASSET WHERE symbol='WMT';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   112.00 FROM ASSET WHERE symbol='DIS';
+
+-- Indian Stocks (INR)
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  1280.00 FROM ASSET WHERE symbol='RELIANCE';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  4100.00 FROM ASSET WHERE symbol='TCS';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  1900.00 FROM ASSET WHERE symbol='INFY';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   310.00 FROM ASSET WHERE symbol='WIPRO';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  1740.00 FROM ASSET WHERE symbol='HDFCBANK';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  1280.00 FROM ASSET WHERE symbol='ICICIBANK';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   780.00 FROM ASSET WHERE symbol='SBIN';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  7200.00 FROM ASSET WHERE symbol='BAJFINANCE';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  2350.00 FROM ASSET WHERE symbol='HINDUNILVR';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id, 11500.00 FROM ASSET WHERE symbol='MARUTI';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   760.00 FROM ASSET WHERE symbol='TATAMOTORS';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  1820.00 FROM ASSET WHERE symbol='SUNPHARMA';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  3300.00 FROM ASSET WHERE symbol='TITAN';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  2450.00 FROM ASSET WHERE symbol='ADANIENT';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id, 22000.00 FROM ASSET WHERE symbol='NESTLEIND';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   330.00 FROM ASSET WHERE symbol='POWERGRID';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id, 11200.00 FROM ASSET WHERE symbol='ULTRACEMCO';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   270.00 FROM ASSET WHERE symbol='ONGC';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   410.00 FROM ASSET WHERE symbol='COALINDIA';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   470.00 FROM ASSET WHERE symbol='ITC';
+
+-- Crypto (USD)
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id, 97000.00 FROM ASSET WHERE symbol='BTC';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,  3400.00 FROM ASSET WHERE symbol='ETH';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   710.00 FROM ASSET WHERE symbol='BNB';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   190.00 FROM ASSET WHERE symbol='SOL';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,     0.38 FROM ASSET WHERE symbol='DOGE';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,     2.40 FROM ASSET WHERE symbol='XRP';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,     1.05 FROM ASSET WHERE symbol='ADA';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,    38.00 FROM ASSET WHERE symbol='AVAX';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,     0.52 FROM ASSET WHERE symbol='MATIC';
+INSERT INTO MARKET_DATA (asset_id, closing_price) SELECT asset_id,   105.00 FROM ASSET WHERE symbol='LTC';
