@@ -35,9 +35,10 @@ def dateformat(value, fmt="%d %b %Y"):
 # Database Configuration — edit these values
 # ──────────────────────────────────────────────
 DB_CONFIG = {
-    "host":     "localhost",
+    "host":     "viaduct.proxy.rlwy.net",
+    "port":     39331,
     "user":     "root",
-    "password": "1234",   # ← change this
+    "password": "WiFJBOqlRWpymPxBRqEzgaNuISGZWWrb",   # ← change this
     "database": "portfolio_db",
 }
 
