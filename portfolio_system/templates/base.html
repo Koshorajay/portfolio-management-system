@@ -117,8 +117,8 @@
 <body>
 <nav>
     <span class="brand">📈 Portfolio Manager</span>
+
     {% if session.get('username') %}
-        <a href="https://www.linkedin.com/in/kishor2905/" target="_blank"></a>
         <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('list_assets') }}">Assets</a>
         <a href="{{ url_for('add_asset') }}">Add Asset</a>
@@ -126,6 +126,11 @@
         <a href="{{ url_for('sell_asset') }}">Sell</a>
         <a href="{{ url_for('invest_idea') }}" style="color:#f1c40f">💡 Invest Idea</a>
         <a href="{{ url_for('update_market_price') }}">Update Price</a>
+
+        <a href="https://www.linkedin.com/in/kishor2905/" target="_blank" class="founder-btn">
+            Founder’s Connect
+        </a>
+
         <a href="{{ url_for('logout') }}">Logout ({{ session['username'] }})</a>
     {% else %}
         <a href="{{ url_for('login') }}">Login</a>
