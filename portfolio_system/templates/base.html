@@ -116,15 +116,9 @@
 </head>
 <body>
 <nav>
-    <h2>Portfolio Management</h2>
-
-    <a href="https://www.linkedin.com/in/kishor2905/" target="_blank">
-        <button class="founder-btn">Founder's Connect</button>
-    </a>
-</nav>
-<nav>
     <span class="brand">📈 Portfolio Manager</span>
     {% if session.get('username') %}
+        <a href="https://www.linkedin.com/in/kishor2905/" target="_blank"></a>
         <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('list_assets') }}">Assets</a>
         <a href="{{ url_for('add_asset') }}">Add Asset</a>
