@@ -16,12 +16,27 @@
 
         /* ── Navbar ── */
         nav {
-            background: #2c3e50;
+            background: linear-gradient(270deg, #2c5048, #4ca1af, #6dd5ed, #134e5e);
+            background-size: 600% 600%;
+            animation: gradientMove 8s ease infinite;
+
             color: #fff;
             padding: 10px 20px;
             display: flex;
             align-items: center;
             gap: 20px;
+        }
+
+        @keyframes gradientMove {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
         }
         nav .brand { font-weight: bold; font-size: 16px; margin-right: auto; }
         nav a { color: #ccc; text-decoration: none; font-size: 13px; }
